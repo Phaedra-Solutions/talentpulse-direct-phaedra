@@ -91,28 +91,28 @@ export function HomePageClient() {
               <div className="font-syne font-extrabold text-[clamp(1.15rem,3.2vw,2.25rem)] text-[#111113] tracking-tight leading-tight whitespace-nowrap">
                 48 HRS
               </div>
-              <div className="font-mono text-xs text-[#111113]/70 mt-1 uppercase">Vetting to Deploy</div>
+              <div className="font-mono text-xs text-[#111113]/70 mt-1 uppercase">Vetting to Deployment</div>
             </div>
             <div className="bg-[#F8F7F4] p-4 sm:p-5 lg:p-6 min-w-0">
               <div className="font-mono text-[10px] uppercase tracking-widest text-[#111113]/60 mb-1">[METRIC 02]</div>
               <div className="font-syne font-extrabold text-[clamp(1.15rem,3.2vw,2.25rem)] text-[#FF4D00] tracking-tight leading-tight whitespace-nowrap">
                 100%
               </div>
-              <div className="font-mono text-xs text-[#111113]/70 mt-1 uppercase">Contractual Pure</div>
+              <div className="font-mono text-xs text-[#111113]/70 mt-1 uppercase">Contractual Engagements</div>
             </div>
             <div className="bg-[#F8F7F4] p-4 sm:p-5 lg:p-6 min-w-0">
               <div className="font-mono text-[10px] uppercase tracking-widest text-[#111113]/60 mb-1">[METRIC 03]</div>
               <div className="font-syne font-extrabold text-[clamp(1.15rem,3.2vw,2.25rem)] text-[#111113] tracking-tight leading-tight whitespace-nowrap">
                 4 - 8 HRS
               </div>
-              <div className="font-mono text-xs text-[#111113]/70 mt-1 uppercase">Daily Overlap</div>
+              <div className="font-mono text-xs text-[#111113]/70 mt-1 uppercase">Daily Client Overlap</div>
             </div>
             <div className="bg-[#F8F7F4] p-4 sm:p-5 lg:p-6 min-w-0">
               <div className="font-mono text-[10px] uppercase tracking-widest text-[#111113]/60 mb-1">[METRIC 04]</div>
               <div className="font-syne font-extrabold text-[clamp(1.15rem,3.2vw,2.25rem)] text-[#111113] tracking-tight leading-tight whitespace-nowrap">
-                VERIFIED
+                REVIEWED
               </div>
-              <div className="font-mono text-xs text-[#111113]/70 mt-1 uppercase">Artifacts &amp; Pitches</div>
+              <div className="font-mono text-xs text-[#111113]/70 mt-1 uppercase">Project Work & Pitches</div>
             </div>
           </div>
         </div>
@@ -125,14 +125,14 @@ export function HomePageClient() {
             <div>
               <div className="font-mono text-xs uppercase tracking-widest text-[#FF4D00] mb-2 font-bold flex items-center gap-2">
                 <span className="w-2 h-2 bg-[#FF4D00] inline-block animate-pulse" />
-                <span>[ACTIVE TRACKS • IMMEDIATE ENGAGEMENTS]</span>
+                <span>[LATEST OPENINGS • CONTRACT OPPORTUNITIES]</span>
               </div>
               <h2 className="font-syne font-extrabold text-4xl sm:text-5xl text-[#111113] tracking-tight">
-                Specialized Engineering Tracks
+                Explore Engineering Opportunities
               </h2>
             </div>
             <p className="font-mono text-xs text-[#111113]/70 uppercase tracking-wider max-w-md">
-              Screened for high-concurrency production competence, timezone overlap, and direct English communication. Click any tile to inspect full specifications.
+              Explore specialized engineering openings with global client teams. View each role’s skills, experience requirements, and working-hour overlap before you apply.
             </p>
           </div>
 
@@ -255,7 +255,7 @@ export function HomePageClient() {
         <div className="max-w-7xl mx-auto">
           <div className="mb-10">
             <div className="font-mono text-xs uppercase tracking-widest text-[#FF4D00] mb-2 font-bold">
-              [VETTING PROTOCOL]
+              [APPLICATION & REVIEW PROCESS]
             </div>
             <h2 className="font-syne font-extrabold text-3xl sm:text-4xl text-[#111113]">
               Four-Phase Contractual Verification
