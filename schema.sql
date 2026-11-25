@@ -313,6 +313,7 @@ ALTER TABLE public.hire_requests ADD COLUMN IF NOT EXISTS consent_timestamp TIME
 
 CREATE INDEX IF NOT EXISTS idx_hire_requests_status ON public.hire_requests(status);
 CREATE INDEX IF NOT EXISTS idx_hire_requests_created_at ON public.hire_requests(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_hire_requests_status_created_at ON public.hire_requests(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_hire_requests_consent_timestamp ON public.hire_requests(consent_timestamp);
 CREATE INDEX IF NOT EXISTS idx_hire_requests_client_email ON public.hire_requests(client_email);
 CREATE INDEX IF NOT EXISTS idx_hire_requests_business_name ON public.hire_requests(business_name);
@@ -383,21 +384,69 @@ CREATE TABLE IF NOT EXISTS public.roles (
 
 CREATE INDEX IF NOT EXISTS idx_roles_slug ON public.roles(slug);
 CREATE INDEX IF NOT EXISTS idx_roles_status ON public.roles(status);
+CREATE INDEX IF NOT EXISTS idx_roles_display_order ON public.roles(display_order ASC);
 
 CREATE TABLE IF NOT EXISTS public.technologies (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
     slug TEXT NOT NULL UNIQUE,
+    canonical_key TEXT,
     status TEXT NOT NULL DEFAULT 'approved',
     is_featured BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
+ALTER TABLE public.technologies ADD COLUMN IF NOT EXISTS canonical_key TEXT;
+WITH normalized AS (
+  SELECT
+    id,
+    regexp_replace(
+      lower(replace(replace(name, '++', 'plusplus'), '#', 'sharp')),
+      '[^a-z0-9]',
+      '',
+      'g'
+    ) AS computed_key,
+    ROW_NUMBER() OVER (
+      PARTITION BY regexp_replace(
+        lower(replace(replace(name, '++', 'plusplus'), '#', 'sharp')),
+        '[^a-z0-9]',
+        '',
+        'g'
+      )
+      ORDER BY
+        CASE status
+          WHEN 'approved' THEN 0
+          WHEN 'pending' THEN 1
+          ELSE 2
+        END,
+        is_featured DESC,
+        created_at ASC,
+        id ASC
+    ) AS rn
+  FROM public.technologies
+  WHERE canonical_key IS NULL
+)
+UPDATE public.technologies t
+SET canonical_key = n.computed_key
+FROM normalized n
+WHERE t.id = n.id
+  AND n.rn = 1
+  AND n.computed_key <> ''
+  AND NOT EXISTS (
+    SELECT 1
+    FROM public.technologies existing
+    WHERE existing.canonical_key = n.computed_key
+      AND existing.id <> t.id
+  );
+
 CREATE INDEX IF NOT EXISTS idx_technologies_slug ON public.technologies(slug);
 CREATE INDEX IF NOT EXISTS idx_technologies_status ON public.technologies(status);
 CREATE INDEX IF NOT EXISTS idx_technologies_status_created_at ON public.technologies(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_technologies_name ON public.technologies(name);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_technologies_canonical_key
+  ON public.technologies(canonical_key)
+  WHERE canonical_key IS NOT NULL AND canonical_key <> '';
 
 CREATE TABLE IF NOT EXISTS public.role_technologies (
     role_id TEXT NOT NULL REFERENCES public.roles(id) ON DELETE CASCADE,

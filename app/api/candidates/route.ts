@@ -9,6 +9,12 @@ import {
   deleteResumeFromSpaces, 
   buildResumeStorageKey 
 } from '@/lib/storage/do-spaces';
+import { canonicalTechKey, deduplicateTechStack } from '@/lib/tech-normalization';
+import { INITIAL_TECHNOLOGIES } from '@/lib/roles-tech-store';
+import {
+  findExistingCandidateMatch,
+  normalizeCandidateEmail,
+} from '@/lib/candidate-duplicate';
 
 function parseBase64FileData(dataUri: string): { buffer: Buffer; mimeType: string } | null {
   if (!dataUri || typeof dataUri !== 'string' || !dataUri.startsWith('data:')) return null;
@@ -60,6 +66,36 @@ async function getVerifiedSupabaseCandidateEmail(
   } catch {
     return null;
   }
+}
+
+async function normalizeCandidateTechStack(
+  techStack: string[],
+  supabase: ReturnType<typeof getSupabaseServerClient>
+): Promise<string[]> {
+  if (!Array.isArray(techStack) || techStack.length === 0) return [];
+  const canonicalLookup = new Map<string, string>();
+  for (const t of INITIAL_TECHNOLOGIES) {
+    const key = canonicalTechKey(t.name);
+    if (key) canonicalLookup.set(key, t.name);
+  }
+
+  if (supabase && isServerSupabaseConfigured) {
+    try {
+      const { data: approved } = await supabase
+        .from('technologies')
+        .select('name')
+        .eq('status', 'approved')
+        .limit(1000);
+      for (const row of approved || []) {
+        const key = canonicalTechKey(row.name);
+        if (key) canonicalLookup.set(key, row.name);
+      }
+    } catch {
+      // keep fallback INITIAL_TECHNOLOGIES lookup
+    }
+  }
+
+  return deduplicateTechStack(techStack, canonicalLookup);
 }
 
 // Helper to safely map application roles to existing Supabase DB enum values
@@ -642,6 +678,38 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const validated = candidateApplicationSchema.parse(body);
+    const normalizedEmail = normalizeCandidateEmail(validated.email);
+    const supabase = getSupabaseServerClient();
+    const activeSupabase = isServerSupabaseConfigured ? supabase : null;
+
+    // Security Guard: Block any duplicate email OR phone BEFORE resume upload or DB insert
+    const existingMatch = await findExistingCandidateMatch(
+      activeSupabase,
+      {
+        email: normalizedEmail,
+        phone_number: validated.phone_number,
+      },
+      INITIAL_MOCK_CANDIDATES
+    );
+
+    if (existingMatch.exists) {
+      const conflictTarget =
+        existingMatch.matchedBy === 'both'
+          ? 'email address and phone number'
+          : existingMatch.matchedBy === 'phone'
+          ? 'phone number'
+          : 'email address';
+
+      return NextResponse.json(
+        {
+          error: `A candidate profile with this ${conflictTarget} already exists. Please use the Candidate Self-Service Portal (/candidate/update) to update your profile.`,
+          code: 'CANDIDATE_ALREADY_EXISTS',
+          matchedBy: existingMatch.matchedBy,
+        },
+        { status: 409 }
+      );
+    }
+
     const candidateId = crypto.randomUUID();
 
     let resumeStorageKey = validated.resume_url;
@@ -668,8 +736,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const normalizedTechStack = await normalizeCandidateTechStack(validated.tech_stack || [], supabase);
+
     const candidateData = {
       ...validated,
+      email: normalizedEmail,
+      tech_stack: normalizedTechStack,
       id: candidateId,
       resume_url: resumeStorageKey,
       overlap_hours_per_day: Number(validated.overlap_hours_per_day),
@@ -680,7 +752,6 @@ export async function POST(req: NextRequest) {
       internal_notes: 'Submitted via public application route.',
     };
 
-    const supabase = getSupabaseServerClient();
     if (supabase && isServerSupabaseConfigured) {
       const dbPayload = toDbCandidateData(candidateData);
       let { data, error } = await supabase
@@ -827,8 +898,13 @@ export async function PATCH(req: NextRequest) {
         }
       }
 
+      const normalizedPatchStack = Array.isArray(updates.tech_stack)
+        ? await normalizeCandidateTechStack(updates.tech_stack, supabase)
+        : updates.tech_stack;
+
       const payload: any = {
         ...updates,
+        ...(Array.isArray(updates.tech_stack) ? { tech_stack: normalizedPatchStack } : {}),
         updated_at: new Date().toISOString(),
       };
       if (!isAdmin) {

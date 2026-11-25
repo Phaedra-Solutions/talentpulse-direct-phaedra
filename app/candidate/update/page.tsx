@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
@@ -41,8 +42,10 @@ import {
   Trash2
 } from 'lucide-react';
 
-export default function CandidateUpdatePage() {
-  const [searchEmail, setSearchEmail] = useState('');
+function CandidateUpdateContent() {
+  const searchParams = useSearchParams();
+  const initialEmail = searchParams.get('email') || '';
+  const [searchEmail, setSearchEmail] = useState(initialEmail);
   const [isSearching, setIsSearching] = useState(false);
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -718,7 +721,7 @@ export default function CandidateUpdatePage() {
                   className="btn-brutalist btn-brutalist-primary text-xs py-3 px-6 min-h-[44px] flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Save className="w-4 h-4 text-white shrink-0" />
-                  <span>{isSaving ? 'SAVING UPDATES...' : 'SAVE UPDATED AVAILABILITY'}</span>
+                  <span>{isSaving ? 'SAVING UPDATES...' : 'SAVE PROFILE UPDATES'}</span>
                 </button>
               </div>
             </form>
@@ -726,5 +729,19 @@ export default function CandidateUpdatePage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function CandidateUpdatePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F8F7F4] flex items-center justify-center font-mono text-xs">
+          Loading Candidate Self-Service Portal...
+        </div>
+      }
+    >
+      <CandidateUpdateContent />
+    </Suspense>
   );
 }
